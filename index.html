@@ -1,0 +1,419 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style><title>Ariyen Qarlik</title>
+<meta name="description" content="Ariyen Qarlik (AQ7). Make the side quests the main quests. @ariyenqarlik on all socials.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;500;800;900&family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%2306080F%22/%3E%3Ctext x=%2232%22 y=%2242%22 font-family=%22Arial Black,Arial%22 font-weight=%22900%22 font-size=%2224%22 text-anchor=%22middle%22 fill=%22%23FFB547%22%3EAQ%3Ctspan fill=%22%23FF2A3D%22%3E7%3C/tspan%3E%3C/text%3E%3C/svg%3E"><style>
+/* Layout: one night-map that you travel down — full-bleed hero with a solid 3D AQ7, a manifesto that fills in as you scroll, a quest route drawn between waypoints, socials and contact. Single deliberate dark look. */
+:root{
+  color-scheme:dark;
+  --night:#06080F;      /* map background */
+  --night-2:#0C1020;    /* raised surfaces */
+  --contour:#5D7BD9;    /* topo lines */
+  --ink:#EEF0F7;        /* text */
+  --dim:#8C93AD;        /* secondary text */
+  --gold:#FFB547;       /* quest marker */
+  --ember:#FF7A2F;      /* gold's deep end */
+  --red:#FF2A3D;        /* the 7 */
+  --line:#1F2541;
+  --yt:#FF3B30; --tt:#25F4EE; --ig:#E1306C; --sn:#FFFC00;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --body:"Hanken Grotesk","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --gutter:max(20px,env(safe-area-inset-left,0px));
+  --gutter-r:max(20px,env(safe-area-inset-right,0px));
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;margin:0;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+::selection{background:var(--gold);color:var(--night)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:4px}
+.mono{font-family:var(--mono);font-size:.74rem;letter-spacing:.14em;text-transform:uppercase}
+.pad{padding-left:var(--gutter);padding-right:var(--gutter-r)}
+
+/* ---------- map canvas ---------- */
+#map{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(120% 80% at 50% 40%,transparent 40%,var(--night) 100%)}
+main{position:relative;z-index:2}
+
+/* ---------- intro ---------- */
+#intro{position:fixed;inset:0;z-index:40;background:var(--night);display:grid;place-items:center;transition:background-color .9s ease,opacity .9s ease}
+#intro.clear{background:transparent;pointer-events:none}
+#intro.gone{opacity:0;visibility:hidden}
+.iword{font-family:var(--display);font-weight:900;font-size:clamp(1.6rem,6.4vw,5.4rem);letter-spacing:-.02em;display:flex;align-items:center;white-space:nowrap;transform-origin:50% 50%;transition:transform .75s cubic-bezier(.7,0,.2,1),opacity .35s ease}
+.iword span{display:inline-block;overflow:hidden;max-width:1.3em;transform:translateY(110%);opacity:0;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .5s ease,max-width .8s cubic-bezier(.7,0,.2,1),filter .6s ease,color .6s ease}
+.iword span.in{transform:none;opacity:1}
+.iword span.drop{max-width:0;opacity:0;filter:blur(8px);transform:translateY(40%) rotate(8deg)}
+.iword span.key{color:var(--gold)}
+.iword span.seven{max-width:0;color:var(--red)}
+.iword span.seven.in{max-width:1.3em}
+.iword.hide{opacity:0}
+.skip{position:fixed;right:var(--gutter-r);bottom:max(20px,calc(env(safe-area-inset-bottom,0px) + 16px));z-index:41;background:none;border:1px solid var(--line);color:var(--dim);border-radius:999px;padding:8px 16px;font:inherit;font-size:.8rem;cursor:pointer;transition:opacity .4s}
+.skip:hover{color:var(--ink);border-color:var(--dim)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;min-height:100svh;display:grid;place-items:center;padding-block:120px}
+.hero-top{position:absolute;top:max(24px,calc(env(safe-area-inset-top,0px) + 18px));left:var(--gutter);right:var(--gutter-r);display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.name{display:flex;flex-direction:column;gap:4px}
+.name b{font-family:var(--display);font-weight:500;font-size:.95rem;letter-spacing:.02em}
+.name span{color:var(--dim)}
+.coords{text-align:right;color:var(--dim);display:flex;flex-direction:column;gap:4px}
+.coords b{color:var(--ink);font-weight:600}
+.logo{perspective:1100px;font-family:var(--display);font-weight:900;font-size:clamp(7rem,27vw,23rem);line-height:.9;letter-spacing:-.04em;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;opacity:0;transition:opacity .25s ease}
+.logo.on{opacity:1}
+.spinner{position:relative;transform-style:preserve-3d;will-change:transform}
+.layer{display:block;white-space:nowrap}
+@media (max-width:600px){.logo{font-size:36vw}.coords b{font-size:.66rem;letter-spacing:.08em}.name span{max-width:9rem}}
+.layer.side{position:absolute;inset:0}
+.layer .s7{color:var(--c7)}
+.layer.face .s7{background:linear-gradient(118deg,#FF8A8F 0%,var(--red) 45%,#B3001B 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.layer.face{position:relative;background:linear-gradient(118deg,#FFF6E6 8%,#FFD38A 38%,var(--gold) 58%,var(--ember) 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.glow{position:absolute;left:50%;top:50%;width:min(70vw,900px);aspect-ratio:2/1;max-width:100%;transform:translate(-50%,-30%);background:radial-gradient(closest-side,color-mix(in srgb,var(--ember) 30%,transparent),transparent 70%);filter:blur(30px);z-index:-1;pointer-events:none}
+.hero-bottom{position:absolute;left:var(--gutter);right:var(--gutter-r);bottom:max(28px,calc(env(safe-area-inset-bottom,0px) + 20px));display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center}
+.slogan{font-family:var(--display);font-weight:300;font-size:clamp(1.05rem,2.6vw,1.9rem);letter-spacing:-.01em;line-height:1.25;margin:0;text-wrap:balance}
+.slogan em{font-family:var(--serif);font-style:italic;font-weight:400;font-size:1.25em;letter-spacing:0}
+.slogan .side{color:var(--dim);position:relative}
+.slogan .side::after{content:"";position:absolute;left:-2%;right:-2%;top:56%;height:2px;background:var(--gold);transform:scaleX(var(--strike,1));transform-origin:left;transition:transform .8s cubic-bezier(.7,0,.2,1)}
+.slogan .main{color:var(--gold)}
+.cue{display:flex;align-items:center;gap:10px;color:var(--dim);text-decoration:none}
+.cue i{width:1px;height:34px;background:linear-gradient(var(--gold),transparent);display:block;animation:drip 2.2s ease-in-out infinite}
+@keyframes drip{0%,100%{transform:scaleY(.3);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}}
+.reveal{transition:opacity .9s ease,transform .9s cubic-bezier(.2,.8,.2,1)}
+.pre .reveal{opacity:0;transform:translateY(14px)}
+.pre .slogan .side::after{--strike:0}
+
+/* ---------- manifesto ---------- */
+.manifesto{padding-block:clamp(90px,16vh,180px)}
+.manifesto .mono{color:var(--gold);display:block;margin-bottom:28px}
+.mline{display:block;font-family:var(--display);font-weight:900;font-size:clamp(2.6rem,10.5vw,9.5rem);line-height:.95;letter-spacing:-.045em;margin:0}
+.mline .w{color:var(--ink)}
+.mline .more{color:transparent;-webkit-text-stroke:1.5px var(--gold);background:linear-gradient(90deg,var(--gold) 0 calc(var(--p,0)*100%),transparent calc(var(--p,0)*100%) 100%);-webkit-background-clip:text;background-clip:text;font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.02em;padding-right:.08em}
+.mline:nth-child(4){padding-left:clamp(0px,8vw,140px)}
+.mline:nth-child(5){padding-left:clamp(0px,16vw,280px)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.manifesto p{max-width:34rem;color:var(--dim);font-size:1.05rem;margin:40px 0 0 auto;text-wrap:pretty}
+
+/* ---------- socials ---------- */
+.socials{padding-block:clamp(70px,12vh,140px) 40px}
+.marquee{overflow:hidden;border-block:1px solid var(--line);padding-block:clamp(14px,2.5vh,26px);margin-block:26px 0;-webkit-mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.track{display:flex;width:max-content;animation:slide 28s linear infinite}
+.track span{font-family:var(--display);font-weight:900;font-size:clamp(3rem,11vw,10rem);letter-spacing:-.05em;line-height:1;padding-right:.5em;white-space:nowrap}
+.track span:nth-child(even){color:transparent;-webkit-text-stroke:1.5px var(--ink)}
+.track span em{font-family:var(--serif);font-weight:400;color:var(--gold);-webkit-text-stroke:0;letter-spacing:-.02em}
+@keyframes slide{to{transform:translateX(-50%)}}
+.allsoc{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:baseline}
+.allsoc .mono{color:var(--gold)}
+.allsoc span:last-child{color:var(--dim)}
+.links{list-style:none;margin:40px 0 0;padding:0;border-top:1px solid var(--line)}
+.links a{--c:var(--gold);position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:20px;align-items:center;padding:clamp(18px,3.2vh,30px) 4px;border-bottom:1px solid var(--line);text-decoration:none;overflow:hidden;isolation:isolate}
+.links a::before{content:"";position:absolute;inset:0;background:var(--c);transform:scaleY(0);transform-origin:bottom;transition:transform .55s cubic-bezier(.7,0,.2,1);z-index:-1}
+.links .pf{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,5.4vw,4.2rem);letter-spacing:-.04em;line-height:1;transition:color .35s,transform .55s cubic-bezier(.2,.8,.2,1)}
+.links .h{font-family:var(--mono);color:var(--dim);font-size:clamp(.72rem,1.4vw,.95rem);transition:color .35s;text-align:right}
+.links .arr{width:clamp(36px,5vw,54px);aspect-ratio:1;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;transition:transform .55s cubic-bezier(.2,.8,.2,1),border-color .35s,background .35s}
+.links .arr svg{width:42%;height:42%;stroke:currentColor;fill:none;stroke-width:2}
+.links a:hover::before,.links a:focus-visible::before{transform:scaleY(1)}
+.links a:hover .pf,.links a:focus-visible .pf{color:var(--night);transform:translateX(12px)}
+.links a:hover .h,.links a:focus-visible .h{color:var(--night)}
+.links a:hover .arr,.links a:focus-visible .arr{transform:rotate(45deg);border-color:var(--night);color:var(--night)}
+.links .yt{--c:var(--yt)} .links .tt{--c:var(--tt)} .links .ig{--c:var(--ig)} .links .sn{--c:var(--sn)}
+@media (max-width:560px){.links a{grid-template-columns:minmax(0,1fr) auto}.links .h{grid-column:1;grid-row:2;text-align:left;margin-top:-10px}.links .arr{grid-row:1/3;grid-column:2}}
+
+/* ---------- contact ---------- */
+.contact{padding-block:clamp(90px,16vh,170px) 40px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:22px}
+.contact .mono{color:var(--gold)}
+.contact h2{font-family:var(--display);font-weight:800;font-size:clamp(2.1rem,7vw,6rem);letter-spacing:-.045em;line-height:1;margin:0;text-wrap:balance}
+.contact h2 em{font-family:var(--serif);font-weight:400;color:var(--gold);letter-spacing:-.01em}
+.mail{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+.mail a{font-family:var(--mono);font-size:clamp(.95rem,2.4vw,1.35rem);text-decoration:none;border-bottom:1px solid var(--gold);padding-bottom:4px;overflow-wrap:anywhere}
+.mail button{background:var(--gold);color:var(--night);border:0;border-radius:999px;padding:9px 18px;font:inherit;font-weight:600;font-size:.88rem;cursor:pointer;transition:transform .2s}
+.mail button:hover{transform:translateY(-2px)}
+footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--dim);padding-block:60px max(28px,calc(env(safe-area-inset-bottom,0px) + 20px));border-top:1px solid var(--line);margin-top:80px}
+
+/* cursor */
+.ring{position:fixed;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;border:1px solid var(--gold);border-radius:50%;z-index:50;pointer-events:none;opacity:0;transition:width .3s,height .3s,margin .3s,opacity .3s,background .3s}
+.ring.on{opacity:.9}
+.ring.big{width:70px;height:70px;margin:-35px 0 0 -35px;background:color-mix(in srgb,var(--gold) 12%,transparent)}
+@media (hover:none){.ring{display:none}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+  html{scroll-behavior:auto}
+}
+</style></head><body>
+
+<canvas id="map" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<div id="intro" aria-hidden="true"><div class="iword" id="iword"></div></div>
+<button class="skip" id="skip" type="button">Skip intro</button>
+
+<main class="pre" id="top">
+  <section class="hero" aria-label="Ariyen Qarlik">
+    <div class="hero-top reveal">
+      <div class="name mono"><b>Ariyen Qarlik</b><span>Creator</span></div>
+      <div class="coords mono"><span>Placement</span><b style="text-transform:none;letter-spacing:.06em;font-size:.95rem">!Earth</b></div>
+    </div>
+    <div class="glow" aria-hidden="true"></div>
+    <div class="logo" id="logo" role="img" aria-label="AQ7"><div class="spinner" id="spinner"></div></div>
+    <div class="hero-bottom">
+      <p class="slogan reveal">Make the <em class="side">side quests</em> the <em class="main">main quests</em></p>
+      <a class="cue mono reveal" href="#manifesto"><i></i>Start the quest</a>
+    </div>
+  </section>
+
+  <section class="manifesto pad" id="manifesto" aria-label="Manifesto">
+    <span class="mono">Rule No. 1 of the quest</span>
+    <h2 class="sr">Live more. Learn more. Explore more.</h2>
+    <span class="mline" aria-hidden="true"><span class="w">Live </span><span class="more">more.</span></span>
+    <span class="mline" aria-hidden="true"><span class="w">Learn </span><span class="more">more.</span></span>
+    <span class="mline" aria-hidden="true"><span class="w">Explore </span><span class="more">more.</span></span>
+    <p>I'm Ariyen, also known as AQ7. I turn random ideas into adventures: nights alone on islands, 24 hours in the forest, flying a plane, building rockets that don't behave. Then I film it so you can come along.</p>
+  </section>
+
+
+  <section class="socials" id="socials" aria-label="Socials">
+    <div class="allsoc pad"><span class="mono">Find me</span><span class="mono">Same name, every app</span></div>
+    <div class="marquee" aria-hidden="true"><div class="track" id="track"></div></div>
+    <ul class="links pad" id="links"></ul>
+  </section>
+
+  <section class="contact pad" aria-label="Contact">
+    <span class="mono">Collabs, brands, quest ideas</span>
+    <h2>Got a <em>side quest</em> for me?</h2>
+    <div class="mail"><a id="mailLink" href="mailto:contact@qarlik.com">contact@qarlik.com</a><button type="button" id="copy">Copy email</button></div>
+  </section>
+
+  <footer class="pad mono">
+    <span>© <span id="yr">2026</span> Ariyen Qarlik · AQ7</span>
+    <span>Live more. Learn more. Explore more.</span>
+  </footer>
+</main>
+<div class="ring" id="ring" aria-hidden="true"></div>
+
+<script>
+/* ===== Edit your info here ===== */
+const CONFIG = {
+  email: "contact@qarlik.com",
+  socials: [
+    // Switch YouTube to @ariyenqarlik once the handle frees up: change both lines below.
+    {cls:"yt", name:"YouTube",   handle:"@Qarlik",       url:"https://www.youtube.com/@Qarlik"},
+    {cls:"tt", name:"TikTok",    handle:"@ariyenqarlik", url:"https://www.tiktok.com/@ariyenqarlik"},
+    {cls:"ig", name:"Instagram", handle:"@ariyenqarlik", url:"https://www.instagram.com/ariyenqarlik/"},
+    {cls:"sn", name:"Snapchat",  handle:"ariyenqarlik",  url:"https://www.snapchat.com/add/ariyenqarlik"}
+  ]
+};
+/* =============================== */
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = s => document.querySelector(s);
+document.getElementById("yr").textContent = new Date().getFullYear();
+
+/* ---------- content ---------- */
+(function build(){
+  const tr = $("#track"); let html = "";
+  for (let k=0;k<4;k++) html += `<span>@ariyenqarlik</span><span>on <em>all</em> socials</span>`;
+  tr.innerHTML = html;
+
+  const ul = $("#links");
+  const arrow = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>`;
+  CONFIG.socials.forEach(s => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a class="${s.cls}" target="_blank" rel="noopener"><span class="pf"></span><span class="h"></span><span class="arr">${arrow}</span></a>`;
+    const a = li.firstChild; a.href = s.url; a.querySelector(".pf").textContent = s.name; a.querySelector(".h").textContent = s.handle;
+    a.setAttribute("aria-label", `${s.name}: ${s.handle}`);
+    ul.appendChild(li);
+  });
+  $("#mailLink").href = "mailto:" + CONFIG.email; $("#mailLink").textContent = CONFIG.email;
+})();
+
+$("#copy").addEventListener("click", async e => {
+  const b = e.currentTarget;
+  try { await navigator.clipboard.writeText(CONFIG.email); b.textContent = "Copied ✓"; }
+  catch(err){ const r = document.createRange(); r.selectNodeContents($("#mailLink")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected, press copy"; }
+  setTimeout(()=> b.textContent = "Copy email", 2200);
+});
+
+
+/* ---------- 3D logo ---------- */
+const spinner = $("#spinner"), logo = $("#logo");
+(function layers(){
+  const N = 22;
+  let h = "";
+  for (let i=N;i>=1;i--){
+    const t = i/N;
+    const c = `color-mix(in srgb, #2A1200 ${Math.round(t*100)}%, #FF7A2F)`;
+    const c7 = `color-mix(in srgb, #2A0006 ${Math.round(t*100)}%, #D1102A)`;
+    h += `<span class="layer side" style="transform:translateZ(${(-i*0.006).toFixed(3)}em);color:${c};--c7:${c7}">AQ<span class="s7">7</span></span>`;
+  }
+  h += `<span class="layer face" style="transform:translateZ(0.002em)">AQ<span class="s7">7</span></span>`;
+  spinner.innerHTML = h;
+})();
+const ease = t => t<.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+const L = {tx:0, ty:0, cx:0, cy:0, spinStart:0, spinDur:0, spinFrom:0, spinTo:0, spin:0, live:false};
+function spin(turns=1, dur=1400){ L.spinFrom = L.spin % 360; L.spinTo = L.spinFrom + 360*turns; L.spinStart = performance.now(); L.spinDur = dur; }
+logo.addEventListener("click", () => { if (!reduce) spin(1, 1100); });
+addEventListener("pointermove", e => {
+  L.tx = (e.clientY / innerHeight - .5) * -22;
+  L.ty = (e.clientX / innerWidth - .5) * 30;
+}, {passive:true});
+function logoFrame(now){
+  if (L.spinDur){ const p = Math.min(1, (now - L.spinStart)/L.spinDur); L.spin = L.spinFrom + (L.spinTo - L.spinFrom)*ease(p); if (p>=1) L.spinDur = 0; }
+  const f = L.live ? .06 : 0;
+  L.cx += (L.tx - L.cx)*f; L.cy += (L.ty - L.cy)*f;
+  const bob = L.live ? Math.sin(now/1600)*4 : 0;
+  spinner.style.transform = `rotateX(${(L.cx + bob*0.6).toFixed(2)}deg) rotateY(${(L.cy + L.spin).toFixed(2)}deg)`;
+  requestAnimationFrame(logoFrame);
+}
+requestAnimationFrame(logoFrame);
+
+/* ---------- intro ---------- */
+const intro = $("#intro"), word = $("#iword"), main = $("#top"), skipBtn = $("#skip");
+const NAME = "ARIYENQARLIK", KEYS = [0,6];
+NAME.split("").forEach((ch,i) => { const s = document.createElement("span"); s.textContent = ch; if (KEYS.includes(i)) s.dataset.key = "1"; word.appendChild(s); });
+const seven = document.createElement("span"); seven.textContent = "7"; seven.className = "seven"; word.appendChild(seven);
+let timers = [], finished = false;
+const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+function revealHero(){
+  main.classList.remove("pre");
+  logo.classList.add("on");
+  L.live = true;
+}
+function finish(fast){
+  if (finished) return; finished = true;
+  timers.forEach(clearTimeout);
+  word.classList.add("hide");
+  intro.classList.add("clear","gone");
+  skipBtn.style.opacity = 0; setTimeout(()=> skipBtn.remove(), 500);
+  revealHero();
+  if (!fast && !reduce) spin(1, 1500);
+  try { sessionStorage.setItem("aq7-intro","1"); } catch(e){}
+}
+skipBtn.addEventListener("click", () => finish(true));
+let seen = false; try { seen = sessionStorage.getItem("aq7-intro") === "1"; } catch(e){}
+if (reduce || seen){ finish(reduce); if (seen && !reduce) spin(1, 1500); }
+else {
+  const letters = [...word.children].filter(s => s !== seven);
+  letters.forEach((s,i) => at(150 + i*55, () => s.classList.add("in")));
+  at(1300, () => letters.forEach(s => s.dataset.key ? s.classList.add("key") : s.classList.add("drop")));
+  at(1750, () => seven.classList.add("in"));
+  at(2500, () => {
+    const r = parseFloat(getComputedStyle(logo).fontSize) / parseFloat(getComputedStyle(word).fontSize);
+    word.style.transform = `scale(${r*0.98})`;
+  });
+  at(3250, () => {
+    word.classList.add("hide");
+    logo.classList.add("on");
+    spin(1, 1500);
+    intro.classList.add("clear");
+  });
+  at(3700, () => { main.classList.remove("pre"); L.live = true; });
+  at(4300, () => finish(true));
+}
+
+/* ---------- custom cursor ---------- */
+(function cursor(){
+  if (!matchMedia("(hover:hover)").matches) return;
+  const ring = $("#ring"); let x=-100,y=-100,rx=x,ry=y;
+  addEventListener("pointermove", e => { x=e.clientX; y=e.clientY; ring.classList.add("on"); }, {passive:true});
+  document.addEventListener("pointerleave", () => ring.classList.remove("on"));
+  document.addEventListener("pointerover", e => ring.classList.toggle("big", !!e.target.closest("a,button,.logo")));
+  (function f(){ rx += (x-rx)*.18; ry += (y-ry)*.18; ring.style.transform = `translate(${rx}px,${ry}px)`; requestAnimationFrame(f); })();
+})();
+
+/* ---------- topo map (marching squares over drifting Perlin noise) ---------- */
+(function topo(){
+  const cv = $("#map"), ctx = cv.getContext("2d");
+  const P = new Uint8Array(512); const p = [...Array(256).keys()];
+  for (let i=255;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [p[i],p[j]] = [p[j],p[i]]; }
+  for (let i=0;i<512;i++) P[i] = p[i&255];
+  const fade = t => t*t*t*(t*(t*6-15)+10), lerp = (a,b,t) => a+(b-a)*t;
+  const grad = (h,x,y,z) => { h&=15; const u=h<8?x:y, v=h<4?y:(h===12||h===14?x:z); return ((h&1)?-u:u)+((h&2)?-v:v); };
+  function noise(x,y,z){
+    const X=Math.floor(x)&255, Y=Math.floor(y)&255, Z=Math.floor(z)&255;
+    x-=Math.floor(x); y-=Math.floor(y); z-=Math.floor(z);
+    const u=fade(x), v=fade(y), w=fade(z);
+    const A=P[X]+Y, AA=P[A]+Z, AB=P[A+1]+Z, B=P[X+1]+Y, BA=P[B]+Z, BB=P[B+1]+Z;
+    return lerp(lerp(lerp(grad(P[AA],x,y,z),grad(P[BA],x-1,y,z),u),lerp(grad(P[AB],x,y-1,z),grad(P[BB],x-1,y-1,z),u),v),
+                lerp(lerp(grad(P[AA+1],x,y,z-1),grad(P[BA+1],x-1,y,z-1),u),lerp(grad(P[AB+1],x,y-1,z-1),grad(P[BB+1],x-1,y-1,z-1),u),v),w);
+  }
+  const css = getComputedStyle(document.documentElement);
+  const C1 = css.getPropertyValue("--contour").trim() || "#5D7BD9", C2 = css.getPropertyValue("--gold").trim() || "#FFB547";
+  let W,H,dpr,cols,rows,step,field;
+  function size(){
+    dpr = Math.min(2, devicePixelRatio||1); W = innerWidth; H = innerHeight;
+    cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    step = W < 700 ? 16 : 14; cols = Math.ceil(W/step)+1; rows = Math.ceil(H/step)+1;
+    field = new Float32Array(cols*rows);
+  }
+  size(); addEventListener("resize", size);
+  let mx = W*.5, my = H*.45, smx = mx, smy = my, scrollY0 = 0;
+  addEventListener("pointermove", e => { mx = e.clientX; my = e.clientY; }, {passive:true});
+  addEventListener("scroll", () => { scrollY0 = scrollY; }, {passive:true});
+  const LEVELS = [-.42,-.3,-.18,-.06,.06,.18,.3,.42,.54];
+  let last = 0;
+  function draw(now){
+    if (!reduce) requestAnimationFrame(draw);
+    if (now - last < 33 && !reduce) return; last = now;
+    const t = now * 0.00004, sc = 0.0042, off = scrollY0 * 0.0008;
+    smx += (mx-smx)*.05; smy += (my-smy)*.05;
+    const r2 = Math.pow(Math.min(W,H)*.22,2);
+    for (let j=0;j<rows;j++) for (let i=0;i<cols;i++){
+      const x = i*step, y = j*step;
+      let v = noise(x*sc, y*sc + off, t) + .45*noise(x*sc*2.1+7, y*sc*2.1+off*2, t*1.6);
+      const dx = x-smx, dy = y-smy; v += .5*Math.exp(-(dx*dx+dy*dy)/r2);
+      field[j*cols+i] = v;
+    }
+    ctx.clearRect(0,0,W,H);
+    LEVELS.forEach((lv,li) => {
+      const hot = li === 7;
+      ctx.beginPath();
+      for (let j=0;j<rows-1;j++) for (let i=0;i<cols-1;i++){
+        const a=field[j*cols+i], b=field[j*cols+i+1], c=field[(j+1)*cols+i+1], d=field[(j+1)*cols+i];
+        const idx = (a>lv?8:0)|(b>lv?4:0)|(c>lv?2:0)|(d>lv?1:0);
+        if (idx===0||idx===15) continue;
+        const x=i*step, y=j*step;
+        const top=[x+step*(lv-a)/(b-a), y], right=[x+step, y+step*(lv-b)/(c-b)], bot=[x+step*(lv-d)/(c-d), y+step], left=[x, y+step*(lv-a)/(d-a)];
+        const seg = (p,q) => { ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); };
+        switch(idx){
+          case 1: case 14: seg(left,bot); break;
+          case 2: case 13: seg(bot,right); break;
+          case 3: case 12: seg(left,right); break;
+          case 4: case 11: seg(top,right); break;
+          case 5: seg(left,top); seg(bot,right); break;
+          case 6: case 9: seg(top,bot); break;
+          case 7: case 8: seg(left,top); break;
+          case 10: seg(left,bot); seg(top,right); break;
+        }
+      }
+      ctx.strokeStyle = hot ? C2 : C1;
+      ctx.globalAlpha = hot ? .55 : (.08 + li*.022);
+      ctx.lineWidth = hot ? 1.2 : 1;
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+  }
+  requestAnimationFrame(draw);
+})();
+
+/* ---------- scroll effect: manifesto fill ---------- */
+(function scrollFx(){
+  const lines = [...document.querySelectorAll(".mline[aria-hidden]")];
+  function update(){
+    const vh = innerHeight;
+    lines.forEach(l => { const r = l.getBoundingClientRect(); const p = Math.min(1, Math.max(0, (vh*.85 - r.top) / (vh*.5))); l.style.setProperty("--p", reduce ? 1 : p.toFixed(3)); });
+  }
+  addEventListener("scroll", update, {passive:true});
+  addEventListener("resize", update);
+  update();
+})();
+
+/* ---------- magnetic social rows ---------- */
+document.querySelectorAll(".links a").forEach(a => {
+  const arr = a.querySelector(".arr");
+  a.addEventListener("pointermove", e => { if (reduce) return; const r = arr.getBoundingClientRect(); const dx = e.clientX-(r.left+r.width/2), dy = e.clientY-(r.top+r.height/2); arr.style.translate = `${dx*.15}px ${dy*.25}px`; });
+  a.addEventListener("pointerleave", () => arr.style.translate = "0 0");
+});
+</script>
+</body></html>
